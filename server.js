@@ -1,11 +1,43 @@
 "use strict";
 const express = require("express");
+const dotenv = require("dotenv");
 const app = express();
 const PORT = process.env.PORT || 3000;
+const postgres = require('pg');
 
+app.use(express.json());
+dotenv.config();
 
+const { Pool } = postgres;
 
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
 
+async function pdo(query, params = []) {
+  const client = await pool.connect();
+  try {
+    const result = await client.query(query, params);
+    client.release();
+    return result;
+  } catch (err) {
+    client.release();
+    throw err;
+  }
+}
+
+app.get('/test-db', async (req, res) => {
+  try {
+    const result = await pdo('SELECT NOW() AS now');
+    res.json({ success: true, time: result.rows[0].now });
+  } catch (err) {
+  console.error('Erreur lors de la requête', err);  
+  res.status(500).json({
+    success: false,
+    error: err.message || err  
+  });
+ }
+});
 
 // Logger minimal: méthode, chemin, status, durée
 app.use((req, res, next) => {
