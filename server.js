@@ -14,30 +14,16 @@ const pool = new Pool({
   connectionString: process.env.DATABASE_URL
 });
 
-async function pdo(query, params = []) {
-  const client = await pool.connect();
-  try {
-    const result = await client.query(query, params);
-    client.release();
-    return result;
-  } catch (err) {
-    client.release();
-    throw err;
-  }
-}
+
 
 app.get('/test-db', async (req, res) => {
   try {
-    const result = await pdo('SELECT NOW() AS now');
-    res.json({ success: true, time: result.rows[0].now });
-  } catch (err) {
-  console.error('Erreur lors de la requête', err);  
-  res.status(500).json({
-    success: false,
-    error: err.message || err  
-  });
- }
-});
+    await pool.query ("SELECT 1");
+    res.status (200) . json ({status: "ok"}) ;
+  } catch (e) {
+    res.status (500) .json ({status: "error", error: e.message}); 
+  }});
+
 
 // Logger minimal: méthode, chemin, status, durée
 app.use((req, res, next) => {
