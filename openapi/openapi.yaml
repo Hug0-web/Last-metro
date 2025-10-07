@@ -1,59 +1,156 @@
-
-openapi: 3.0.3
+-openapi: 3.1.0
 info:
   title: Dernier Métro API
   version: 1.0.0
+  description: |
+    Petite API Express pour vérifier la santé du service, le statut de la base Postgres,
+    et simuler la prochaine arrivée du métro.
+  contact:
+    name: API Support
 servers:
-  - url: http://localhost:5000
+  - url: http://localhost:3000
+    description: Local
+  - url: https://api.example.com
+    description: Production (exemple)
+
 paths:
   /health:
     get:
-      summary: Health check
+      tags: [Monitoring]
+      summary: Vérifier la santé de l'API
+      operationId: getHealth
       responses:
-        '200':
-          description: OK
+        "200":
+          description: Service opérationnel
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                  service:
-                    type: string
+                $ref: '#/components/schemas/HealthResponse'
+              examples:
+                ok:
+                  value:
+                    status: ok
+                    service: dernier-metro-api
+
+  /test-db:
+    get:
+      tags: [Monitoring]
+      summary: Vérifier la connexion à la base Postgres
+      operationId: getTestDb
+      responses:
+        "200":
+          description: La base répond
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenericOk'
+              examples:
+                ok:
+                  value:
+                    status: ok
+        "500":
+          description: Erreur de base de données
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  value:
+                    status: error
+                    error: message d'erreur
+
   /next-metro:
     get:
-      summary: Prochain passage de métro
+      tags: [Métro]
+      summary: Donner l'heure d'arrivée du prochain métro
+      operationId: getNextMetro
       parameters:
         - in: query
           name: station
-          schema:
-            type: string
           required: true
           description: Nom de la station
+          schema:
+            type: string
       responses:
-        '200':
-          description: Heure d'arrivée estimée
+        "200":
+          description: Prochaine arrivée calculée
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  station:
-                    type: string
-                  line:
-                    type: string
-                  headwayMin:
-                    type: integer
-                  nextArrival:
-                    type: string
-                    example: "12:34"
-        '400':
-          description: Paramètre manquant
+                $ref: '#/components/schemas/NextMetroResponse'
+              examples:
+                sample:
+                  value:
+                    station: Bastille
+                    line: M1
+                    headwayMin: 3
+                    nextArrival: "14:23"
+        "400":
+          description: Paramètre station manquant
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  error:
-                    type: string
+                $ref: '#/components/schemas/BadRequest'
+              examples:
+                missingStation:
+                  value:
+                    error: missing station
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok]
+        service:
+          type: string
+          example: dernier-metro-api
+      required: [status, service]
+
+    GenericOk:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [ok]
+      required: [status]
+
+    ErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [error]
+        error:
+          type: string
+      required: [status, error]
+
+    BadRequest:
+      type: object
+      properties:
+        error:
+          type: string
+          example: missing station
+      required: [error]
+
+    NextMetroResponse:
+      type: object
+      properties:
+        station:
+          type: string
+        line:
+          type: string
+          example: M1
+        headwayMin:
+          type: integer
+          minimum: 0
+          example: 3
+        nextArrival:
+          type: string
+          description: Heure HH:MM (locale du serveur)
+          pattern: '^[0-2][0-9]:[0-5][0-9]$'
+          example: "14:23"
+      required: [station, line, headwayMin, nextArrival]
