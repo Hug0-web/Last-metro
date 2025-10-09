@@ -57,4 +57,8 @@ app.get('/next-metro', (req, res) => {
 // 404 JSON
 app.use((_req, res) => res.status(404).json({ error: 'not found' }));
 
-app.listen(PORT, () => console.log(`API ready on http://localhost:${PORT}`));
+if (require.main === module && process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => console.log(`Hello, API ready on http://localhost:${PORT}`));
+}
+
+module.exports = app;
